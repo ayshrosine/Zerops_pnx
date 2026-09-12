@@ -1,0 +1,10 @@
+{
+  "name": "zerops-deployment-guide-platform",
+  "version": "1.0.0",
+  "description": "Interactive Zerops Deployment Platform & Guide for Freshers",
+  "scripts": {
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build"
+  }
+}

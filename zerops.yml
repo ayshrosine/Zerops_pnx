@@ -1,0 +1,41 @@
+# zerops.yml to deploy this entire Zerops Fresher Guide App (Frontend + Backend) to Zerops!
+zerops:
+  # Backend API Service
+  - setup: backend
+    build:
+      base: nodejs@20
+      buildCommands:
+        - cd backend && npm ci
+      deployFiles:
+        - backend
+      cache:
+        - backend/node_modules
+        - ~/.npm
+    run:
+      base: nodejs@20
+      ports:
+        - port: 5000
+          httpSupport: true
+      envVariables:
+        NODE_ENV: production
+        PORT: 5000
+      start: cd backend && node src/server.js
+      healthCheck:
+        httpGet:
+          port: 5000
+          path: /api/health
+
+  # Frontend Static Service
+  - setup: frontend
+    build:
+      base: nodejs@20
+      buildCommands:
+        - cd frontend && npm ci
+        - cd frontend && npm run build
+      deployFiles:
+        - frontend/dist/~
+      cache:
+        - frontend/node_modules
+        - ~/.npm
+    run:
+      base: static
