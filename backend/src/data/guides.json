@@ -1,0 +1,107 @@
+[
+  {
+    "id": "zerops-fundamentals",
+    "title": "Zerops Fundamentals: What Every Fresher Must Know",
+    "category": "core",
+    "summary": "Understand how Zerops works under the hood: Projects, Services, Build/Run Containers, and zerops.yml.",
+    "duration": "8 min read",
+    "level": "Beginner",
+    "icon": "Layers",
+    "steps": [
+      {
+        "stepNumber": 1,
+        "title": "What is Zerops and Why is it Different?",
+        "content": "Zerops is a developer-first platform-as-a-service (PaaS) built on bare-metal infrastructure and LXD/Linux containers. Unlike traditional serverless that suffers from cold starts, or raw VPS that requires tedious Docker & Linux maintenance, Zerops gives you dedicated containerized environments with automated CI/CD, auto-scaling, and managed databases without vendor lock-in.",
+        "tip": "Think of Zerops as having a senior DevOps engineer managing your container orchestration, SSL certificates, load balancers, and backups automatically."
+      },
+      {
+        "stepNumber": 2,
+        "title": "The Hierarchy: Project > Service > Container",
+        "content": "In Zerops:\n• **Project**: A logical grouping (e.g., 'My Ecommerce Store' or 'Portfolio App') containing all your backend, frontend, database, and cache services in a private isolated network.\n• **Service**: An individual component like a Node.js API, a React Static frontend, a PostgreSQL database, or a Redis cache.\n• **Container**: The lightweight, ultra-fast Linux environment where your code actually builds and executes.",
+        "tip": "Services inside the same project can talk to each other securely over internal hostnames without exposing databases to the public internet!"
+      },
+      {
+        "stepNumber": 3,
+        "title": "The Brain: What is `zerops.yml`?",
+        "content": "Every app deployed on Zerops is configured through a single file named `zerops.yml` placed in the root directory of your repository. It defines two main phases:\n1. **Build Phase (prepare & build)**: Where you install dependencies (e.g., `npm install`, `pip install`) and compile assets (e.g., `npm run build`).\n2. **Run Phase (run & deploy)**: Where you specify the runtime command (e.g., `npm start`, `python main.py`), port numbers, environment variables, and health checks.",
+        "tip": "Never forget to commit `zerops.yml` to your Git root directory before pushing!"
+      },
+      {
+        "stepNumber": 4,
+        "title": "Deployment Triggers: Git vs zcli",
+        "content": "You can deploy your code to Zerops in two primary ways:\n• **GitHub / GitLab Auto-deploy**: Link your Git repository branch to Zerops service. Whenever you run `git push origin main`, Zerops automatically clones, builds, and deploys with zero downtime.\n• **Zerops CLI (`zcli`)**: Push code directly from your local terminal with `zcli service push`, perfect for fast development testing without committing unfinished code.",
+        "tip": "Use `zcli` during hackathons or local testing, and connect GitHub for automated production CI/CD."
+      }
+    ]
+  },
+  {
+    "id": "step-by-step-first-deployment",
+    "title": "Your First Zerops Deployment: Complete Walkthrough",
+    "category": "walkthrough",
+    "summary": "From zero to live production URL in 5 practical steps.",
+    "duration": "10 min read",
+    "level": "Beginner",
+    "icon": "Rocket",
+    "steps": [
+      {
+        "stepNumber": 1,
+        "title": "Create a Zerops Account & Project",
+        "content": "1. Head to [app.zerops.io](https://app.zerops.io) and register with your email or GitHub.\n2. In the dashboard, click **+ Add Project**.\n3. Give your project a clear name like `fresher-demo-app` and select your preferred data center region (e.g., Frankfurt/Europe for lowest latency or closest to your users).",
+        "tip": "Projects organize related microservices. A single project can hold both frontend and backend."
+      },
+      {
+        "stepNumber": 2,
+        "title": "Create a Service in Your Project",
+        "content": "Inside your new project:\n1. Click **+ Add Service**.\n2. Pick the service type matching your technology:\n   - **Static** for React, Vite, Vue, HTML/CSS.\n   - **Node.js** for Express, NestJS, Fastify.\n   - **Python** for FastAPI, Django, Flask.\n   - **PostgreSQL / MariaDB / Redis** for databases.\n3. Enter a service hostname (e.g., `api` or `frontend`).",
+        "tip": "Choose container scaling mode: 'Auto-scaling' allows Zerops to scale RAM/CPU up during traffic spikes and down to save money!"
+      },
+      {
+        "stepNumber": 3,
+        "title": "Add `zerops.yml` to Your Repository",
+        "content": "Create `zerops.yml` in your code repository root. Make sure the `setup` key matches your service hostname (e.g., `api` or `app`).\n\n```yaml\nzerops:\n  - setup: api\n    build:\n      base: nodejs@20\n      buildCommands:\n        - npm ci\n      deployFiles:\n        - dist\n        - package.json\n        - node_modules\n    run:\n      base: nodejs@20\n      ports:\n        - port: 3000\n          httpSupport: true\n      start: npm start\n```",
+        "tip": "Always specify `httpSupport: true` if your service serves HTTP traffic to get an automatic HTTPS subdomain!"
+      },
+      {
+        "stepNumber": 4,
+        "title": "Connect Git or Push via Zerops CLI",
+        "content": "Option A (GitHub):\n- In the Zerops service dashboard, click **Pipeline & CI/CD** -> **Connect Repository**.\n- Select your GitHub repo and branch (`main`).\n\nOption B (Zerops CLI):\n- Install zcli: `npm install -g @zerops/zcli` or download binary.\n- Log in: `zcli login <YOUR_ACCESS_TOKEN>`\n- Push: `zcli service push --service api`",
+        "tip": "Generate access tokens in Zerops -> User Avatar -> Access Tokens with Service: Push permission."
+      },
+      {
+        "stepNumber": 5,
+        "title": "Verify Deployment & Access Public URL",
+        "content": "1. Watch the real-time build & deploy log stream in the Zerops dashboard.\n2. Once the service transitions to the green **Running** state, enable public routing or click the generated `.zerops.app` subdomain.\n3. Test your live endpoints via browser or curl!",
+        "tip": "Zerops automatically provisions free wildcard SSL (Let's Encrypt) certificates for all public subdomains and custom domains."
+      }
+    ]
+  },
+  {
+    "id": "environment-variables-secrets",
+    "title": "Mastering Environment Variables & Secrets",
+    "category": "configuration",
+    "summary": "How to securely configure API keys, database credentials, and cross-service links without exposing secrets.",
+    "duration": "6 min read",
+    "level": "Intermediate",
+    "icon": "Key",
+    "steps": [
+      {
+        "stepNumber": 1,
+        "title": "Why Never Commit .env Files to Git",
+        "content": "One of the most dangerous rookie mistakes is committing `.env` containing private API keys, Stripe secrets, or database passwords into GitHub. Zerops provides built-in Environment Variables management with AES-256 encryption.",
+        "tip": "Always add `.env` to your `.gitignore` file before running `git add .`!"
+      },
+      {
+        "stepNumber": 2,
+        "title": "Setting Environment Variables in Zerops Dashboard",
+        "content": "1. Navigate to your service in Zerops dashboard.\n2. Click on **Environment Variables** in the left menu.\n3. Add key-value pairs (e.g., `PORT=3000`, `NODE_ENV=production`, `JWT_SECRET=supersecret`).\n4. Zerops securely injects these variables into your run container upon startup.",
+        "tip": "You can also specify default public environment variables inside `zerops.yml` under `run.envVariables`."
+      },
+      {
+        "stepNumber": 3,
+        "title": "Automatic Service Referencing (Cross-Service Links)",
+        "content": "When you have a database service (e.g. `db`) and an API service (e.g. `api`) in the same project, Zerops automatically provides cross-service variables!\nFor example:\n• `${db_hostname}` -> internal network hostname\n• `${db_port}` -> internal port (e.g., 5432)\n• `${db_user}` -> generated database username\n• `${db_password}` -> secure database password",
+        "tip": "Construct your connection string like: `DATABASE_URL=postgresql://${db_user}:${db_password}@${db_hostname}:${db_port}/${db_name}`"
+      }
+    ]
+  }
+]

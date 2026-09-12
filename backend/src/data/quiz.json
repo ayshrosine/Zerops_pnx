@@ -1,0 +1,74 @@
+[
+  {
+    "id": "q1",
+    "question": "When deploying a Node.js or Python backend on Zerops, why must your server listen on 0.0.0.0 instead of 127.0.0.1 (localhost)?",
+    "options": [
+      "127.0.0.1 is insecure and rejected by firewalls",
+      "Inside a container, 127.0.0.1 is loopback only within that container; 0.0.0.0 binds to all interfaces so external traffic routed by Zerops can reach it",
+      "0.0.0.0 enables WebSocket support automatically",
+      "Zerops only supports IPv6 addresses by default"
+    ],
+    "correctIndex": 1,
+    "explanation": "Linux containers run inside isolated network namespaces. Binding to 127.0.0.1 causes the server to listen only to packets originating from within the container itself. 0.0.0.0 allows incoming traffic from Zerops' internal load balancer to be received."
+  },
+  {
+    "id": "q2",
+    "question": "What is the primary role of the `zerops.yml` file?",
+    "options": [
+      "It installs the Zerops CLI onto your local computer",
+      "It instructs Zerops how to build dependencies, what files to deploy, and what start command to execute in runtime",
+      "It stores your secret database passwords in plain text",
+      "It is a replacement for package.json or requirements.txt"
+    ],
+    "correctIndex": 1,
+    "explanation": "zerops.yml defines the CI/CD pipeline and runtime environment: build containers, preparation commands, deploy files, environment variables, healthchecks, and start commands."
+  },
+  {
+    "id": "q3",
+    "question": "What happens if the `setup:` name in your `zerops.yml` does NOT match the service hostname in the Zerops dashboard?",
+    "options": [
+      "Zerops renames your service automatically",
+      "Zerops will fail the deployment because it cannot find the configuration matching that service hostname",
+      "It defaults to a generic static container",
+      "Nothing, setup name is purely cosmetic"
+    ],
+    "correctIndex": 1,
+    "explanation": "Zerops matches the service being deployed to the corresponding `setup: <hostname>` block in zerops.yml. If they don't match, Zerops throws an error indicating no configuration was found."
+  },
+  {
+    "id": "q4",
+    "question": "How should you reference a PostgreSQL database named 'db' inside the same Zerops project in your API?",
+    "options": [
+      "Connect to `localhost:5432` with username `root`",
+      "Use cross-service environment variables like `${db_hostname}`, `${db_port}`, `${db_user}`, and `${db_password}`",
+      "Hardcode the database password directly into your source code repository",
+      "Create a public SSH tunnel from your local machine"
+    ],
+    "correctIndex": 1,
+    "explanation": "Zerops provides private VPC networking. Services in the same project can access each other securely using automatically generated environment variables like `${db_hostname}`."
+  },
+  {
+    "id": "q5",
+    "question": "Why is caching directories like `node_modules` or `~/.cache/pip` in `zerops.yml` recommended?",
+    "options": [
+      "It prevents your code from crashing when RAM is low",
+      "It drastically speeds up subsequent builds (e.g. from 3 minutes to 15 seconds) by avoiding re-downloading unchanged packages",
+      "It encrypts your application source code",
+      "It is mandatory or Zerops will reject the build"
+    ],
+    "correctIndex": 1,
+    "explanation": "Build containers are ephemeral. The `cache:` block preserves designated folders across build runs so package managers like npm, pip, and go mod don't re-download packages every time you push."
+  },
+  {
+    "id": "q6",
+    "question": "In a React/Vue SPA deployed to a static service, why does refreshing a page like `/dashboard` give 404 without rewrite rules?",
+    "options": [
+      "The Zerops server is offline",
+      "Client-side routers handle routes in JavaScript, so the web server looks for a physical /dashboard/index.html file that doesn't exist",
+      "You forgot to install Vite in production",
+      "Static services can only have 1 HTML file and no subroutes"
+    ],
+    "correctIndex": 1,
+    "explanation": "SPAs use client-side routing. When refreshing a deep URL directly, the web server looks on disk for that path. A rewrite rule directing all non-file requests to index.html solves this."
+  }
+]

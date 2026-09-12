@@ -1,0 +1,122 @@
+[
+  {
+    "id": "react-vite-spa",
+    "name": "React + Vite (Static SPA)",
+    "category": "Frontend",
+    "badge": "Popular",
+    "description": "Ultra-fast Single Page Application built with Vite and hosted on Zerops static Nginx container with zero server overhead.",
+    "zeropsServiceType": "static",
+    "zeropsYml": "zerops:\n  - setup: frontend\n    build:\n      base: nodejs@20\n      buildCommands:\n        - npm ci\n        - npm run build\n      deployFiles:\n        - dist/~\n      cache:\n        - node_modules\n        - ~/.npm\n    run:\n      base: static",
+    "keyFeatures": [
+      "Zero server maintenance (pure static hosting)",
+      "Instant CDN & automatic wildcard HTTPS",
+      "Deploy files unpacked with '~' syntax into document root",
+      "npm caching for 10x faster subsequent builds"
+    ],
+    "steps": [
+      "1. Create a `static` service named `frontend` in your Zerops project.",
+      "2. Add the `zerops.yml` to your Git root.",
+      "3. Push your repository to trigger the automated build.",
+      "4. Enable public subdomain in Zerops dashboard to visit your live site."
+    ]
+  },
+  {
+    "id": "nodejs-express-api",
+    "name": "Node.js + Express / Fastify API",
+    "category": "Backend",
+    "badge": "Essential",
+    "description": "High-performance Node.js REST API or WebSocket server running on Node.js 20/22 runtime with auto-scaling.",
+    "zeropsServiceType": "nodejs",
+    "zeropsYml": "zerops:\n  - setup: api\n    build:\n      base: nodejs@20\n      buildCommands:\n        - npm ci\n        - npm run build\n      deployFiles:\n        - dist\n        - package.json\n        - package-lock.json\n        - node_modules\n      cache:\n        - node_modules\n        - ~/.npm\n    run:\n      base: nodejs@20\n      ports:\n        - port: 3000\n          httpSupport: true\n      envVariables:\n        NODE_ENV: production\n        PORT: 3000\n      start: node dist/index.js\n      healthCheck:\n        httpGet:\n          port: 3000\n          path: /healthz",
+    "keyFeatures": [
+      "Direct Node.js 20 LTS environment",
+      "Automated HTTP port 3000 mapping with SSL",
+      "Unauthenticated `/healthz` check prevents downtime during rolling updates",
+      "Dynamic environment variable injection"
+    ],
+    "steps": [
+      "1. Create a `nodejs` service named `api` in Zerops.",
+      "2. Ensure your Express code uses `app.listen(process.env.PORT || 3000, '0.0.0.0')`.",
+      "3. Add `/healthz` endpoint returning `{ status: 'ok' }`.",
+      "4. Push your code using GitHub or `zcli service push --service api`."
+    ]
+  },
+  {
+    "id": "python-fastapi",
+    "name": "Python + FastAPI / Uvicorn",
+    "category": "Backend",
+    "badge": "High Performance",
+    "description": "Async modern Python API framework with automatic OpenAPI docs and ASGI Uvicorn production server.",
+    "zeropsServiceType": "python",
+    "zeropsYml": "zerops:\n  - setup: python-api\n    build:\n      base: python@3.11\n      buildCommands:\n        - python -m venv .venv\n        - . .venv/bin/activate\n        - pip install -r requirements.txt\n      deployFiles:\n        - app\n        - requirements.txt\n        - .venv\n      cache:\n        - ~/.cache/pip\n    run:\n      base: python@3.11\n      ports:\n        - port: 8000\n          httpSupport: true\n      envVariables:\n        PYTHONUNBUFFERED: \"1\"\n      start: .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "keyFeatures": [
+      "Virtualenv isolation preserved during deployment",
+      "Async Uvicorn ASGI server with 0.0.0.0 binding",
+      "Pip cache directory re-used across builds",
+      "Python 3.11/3.12 optimized Linux container"
+    ],
+    "steps": [
+      "1. Create a `python` service named `python-api` in Zerops.",
+      "2. Have `requirements.txt` listing `fastapi`, `uvicorn[standard]`.",
+      "3. Include `zerops.yml` in your repo and commit.",
+      "4. Push to Zerops to deploy."
+    ]
+  },
+  {
+    "id": "fullstack-nextjs",
+    "name": "Next.js (App Router / SSR)",
+    "category": "Fullstack",
+    "badge": "Fullstack",
+    "description": "Server-Side Rendered (SSR) Next.js application with React Server Components running in standalone mode.",
+    "zeropsServiceType": "nodejs",
+    "zeropsYml": "zerops:\n  - setup: nextjs-app\n    build:\n      base: nodejs@20\n      buildCommands:\n        - npm ci\n        - npm run build\n      deployFiles:\n        - .next/standalone\n        - .next/static\n        - public\n      cache:\n        - node_modules\n        - .next/cache\n    run:\n      base: nodejs@20\n      ports:\n        - port: 3000\n          httpSupport: true\n      envVariables:\n        NODE_ENV: production\n        PORT: 3000\n        HOSTNAME: \"0.0.0.0\"\n      start: node server.js\n      initCommands:\n        - cp -r .next/static .next/standalone/.next/static\n        - cp -r public .next/standalone/public",
+    "keyFeatures": [
+      "Standalone output optimizes container image size by up to 80%",
+      "Preserves Next.js build cache (`.next/cache`) for fast incremental builds",
+      "Full support for dynamic SSR, Server Actions, and API routes"
+    ],
+    "steps": [
+      "1. Enable `output: 'standalone'` in your `next.config.js`.",
+      "2. Create a `nodejs` service named `nextjs-app` in Zerops.",
+      "3. Add `zerops.yml` and deploy via Git push."
+    ]
+  },
+  {
+    "id": "golang-gin-api",
+    "name": "Go (Gin / Fiber / Standard)",
+    "category": "Backend",
+    "badge": "Blazing Fast",
+    "description": "Lightweight compiled Go binary with sub-millisecond cold starts and minimal memory footprint.",
+    "zeropsServiceType": "go",
+    "zeropsYml": "zerops:\n  - setup: go-api\n    build:\n      base: go@1.22\n      buildCommands:\n        - go mod download\n        - CGO_ENABLED=0 GOOS=linux go build -o main .\n      deployFiles:\n        - main\n      cache:\n        - ~/go/pkg/mod\n        - ~/.cache/go-build\n    run:\n      base: go@1.22\n      ports:\n        - port: 8080\n          httpSupport: true\n      start: ./main",
+    "keyFeatures": [
+      "Static Go binary compiled with CGO_ENABLED=0",
+      "Tiny deploy payload (only single executable binary deployed)",
+      "Re-usable Go module cache"
+    ],
+    "steps": [
+      "1. Create a `go` service named `go-api` in Zerops.",
+      "2. Add `zerops.yml` with binary compilation.",
+      "3. Push and watch your Go server start in milliseconds."
+    ]
+  },
+  {
+    "id": "managed-databases",
+    "name": "PostgreSQL & Redis Managed Services",
+    "category": "Database & Cache",
+    "badge": "Infrastructure",
+    "description": "Zero-configuration managed databases with automated point-in-time backups, replication, and private networking.",
+    "zeropsServiceType": "postgresql",
+    "zeropsYml": "# Managed databases in Zerops do not require a zerops.yml build config!\n# They are provisioned instantly through the Zerops GUI or Import YAML:\nproject:\n  name: my-app-project\n  services:\n    - name: db\n      type: postgresql@16\n      mode: NON_HA # Or HA for high-availability multi-node cluster\n    - name: cache\n      type: redis@7.2\n      mode: NON_HA",
+    "keyFeatures": [
+      "Automated encrypted daily & hourly backups",
+      "Private VPC isolated network (zero public exposure by default)",
+      "Pre-configured connection strings shared automatically via `${db_hostname}`"
+    ],
+    "steps": [
+      "1. Click **+ Add Service** in your Zerops project and select **PostgreSQL** or **Redis**.",
+      "2. Choose storage size (e.g. 5GB) and container resources.",
+      "3. In your API `zerops.yml`, reference `${db_user}`, `${db_password}`, `${db_hostname}`."
+    ]
+  }
+]

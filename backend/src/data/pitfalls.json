@@ -1,0 +1,93 @@
+[
+  {
+    "id": "pitfall-localhost-binding",
+    "title": "Binding Server to localhost (127.0.0.1) instead of 0.0.0.0",
+    "severity": "CRITICAL",
+    "category": "Networking & Ports",
+    "frequency": "Very Common (70% of Freshers)",
+    "symptom": "Build passes successfully and container starts, but the public URL returns '502 Bad Gateway' or 'Connection Refused' or healthcheck times out.",
+    "explanation": "Inside a Linux container, `localhost` (127.0.0.1) is loopback only within the isolated network namespace. External requests forwarded by the Zerops ingress load balancer cannot reach the process unless the application listens on `0.0.0.0` (all network interfaces).",
+    "wrongCode": "// In Node.js / Express\nconst PORT = process.env.PORT || 3000;\napp.listen(PORT, '127.0.0.1', () => {\n  console.log(`Server running on port ${PORT}`);\n});\n\n# Or in Python FastAPI / Uvicorn\nuvicorn.run(app, host=\"127.0.0.1\", port=8000)",
+    "fixedCode": "// In Node.js / Express\nconst PORT = process.env.PORT || 3000;\n// Omit host or specify '0.0.0.0'\napp.listen(PORT, '0.0.0.0', () => {\n  console.log(`Server running on 0.0.0.0:${PORT}`);\n});\n\n# Or in Python FastAPI / Uvicorn\nuvicorn.run(app, host=\"0.0.0.0\", port=8000)",
+    "zeropsYmlCheck": "run:\n  ports:\n    - port: 3000\n      httpSupport: true",
+    "proTip": "Ensure the port number in your code matches the port declared in `zerops.yml` exactly!"
+  },
+  {
+    "id": "pitfall-spa-routing-404",
+    "title": "SPA Routing 404 on Page Refresh (React / Vue / Vite)",
+    "severity": "HIGH",
+    "category": "Frontend / Static Hosting",
+    "frequency": "Common (65% of Freshers)",
+    "symptom": "Home page (`/`) loads fine, but clicking navigation to `/about` or `/dashboard` and hitting browser refresh (F5) results in a 404 Not Found error.",
+    "explanation": "Single Page Applications (SPAs) use client-side routing (like `react-router-dom`). When a user visits `/about`, the web server looks for a physical directory named `/about/index.html` on the server disk. Since it doesn't exist, static web servers return 404 unless configured to rewrite all unknown paths to `index.html`.",
+    "wrongCode": "# Incorrect static setup in zerops.yml (missing routing rewrite)\nzerops:\n  - setup: frontend\n    build:\n      base: nodejs@20\n      buildCommands:\n        - npm run build\n      deployFiles:\n        - dist\n    run:\n      base: static\n      # Missing index.html fallback for client-side routing!",
+    "fixedCode": "# Correct zerops.yml with static fallback\nzerops:\n  - setup: frontend\n    build:\n      base: nodejs@20\n      buildCommands:\n        - npm install\n        - npm run build\n      deployFiles:\n        - dist/~ # Note: '~' deploys contents of dist directly\n    run:\n      base: static\n      # In Zerops static service, add custom nginx rewrite if using static nginx\n      # or ensure routing fallback is configured for SPAs",
+    "zeropsYmlCheck": "deployFiles:\n  - dist/~",
+    "proTip": "Using `dist/~` in deployFiles deploys the contents of `dist` directly into the root web folder rather than creating a subfolder `/dist`."
+  },
+  {
+    "id": "pitfall-hardcoded-credentials",
+    "title": "Hardcoding Database Credentials & Localhost URLs",
+    "severity": "CRITICAL",
+    "category": "Security & Databases",
+    "frequency": "Very Common (60% of Freshers)",
+    "symptom": "App crashes on startup with 'Connection to postgres://localhost:5432 failed' or authentication failure.",
+    "explanation": "In production cloud environments, databases run in separate isolated containers with dynamically generated credentials and network hostnames. You cannot connect to `localhost:5432` from your API container.",
+    "wrongCode": "// HARDCODED - NEVER DO THIS IN PRODUCTION\nconst pool = new Pool({\n  user: 'postgres',\n  host: 'localhost', // FAILS in cloud container!\n  database: 'mydb',\n  password: 'mypassword123',\n  port: 5432,\n});",
+    "fixedCode": "// CORRECT - Dynamic environment variables from Zerops\nconst pool = new Pool({\n  user: process.env.DB_USER || process.env.db_user,\n  host: process.env.DB_HOST || process.env.db_hostname,\n  database: process.env.DB_NAME || process.env.db_name,\n  password: process.env.DB_PASSWORD || process.env.db_password,\n  port: Number(process.env.DB_PORT || process.env.db_port) || 5432,\n});\n\n// Or using connection string:\nconst connectionString = process.env.DATABASE_URL;",
+    "zeropsYmlCheck": "run:\n  envVariables:\n    DATABASE_URL: postgresql://${db_user}:${db_password}@${db_hostname}:${db_port}/${db_name}",
+    "proTip": "Zerops automatically resolves `${db_hostname}` variables across linked services in your project."
+  },
+  {
+    "id": "pitfall-missing-build-cache",
+    "title": "Slow 10-Minute Builds Caused by Missing Cache Directories",
+    "severity": "MEDIUM",
+    "category": "Build Performance",
+    "frequency": "Common (50% of Freshers)",
+    "symptom": "Every code change takes 5-10 minutes to build because `npm install` or `pip install` or Go modules re-download from scratch on every single git push.",
+    "explanation": "By default, build containers are ephemeral (destroyed after build). Without caching directives in `zerops.yml`, the package manager cannot reuse previously downloaded packages.",
+    "wrongCode": "# Slow build without cache\nbuild:\n  base: nodejs@20\n  buildCommands:\n    - npm install\n    - npm run build",
+    "fixedCode": "# Fast build with cache enabled\nbuild:\n  base: nodejs@20\n  buildCommands:\n    - npm ci\n    - npm run build\n  cache:\n    - node_modules\n    - ~/.npm",
+    "zeropsYmlCheck": "cache:\n  - node_modules\n  - ~/.npm",
+    "proTip": "Adding `cache: [node_modules]` drops Node.js build time from 3 minutes down to under 15 seconds!"
+  },
+  {
+    "id": "pitfall-mismatched-service-hostname",
+    "title": "Mismatch Between setup Name in zerops.yml and Service Hostname",
+    "severity": "CRITICAL",
+    "category": "Zerops Configuration",
+    "frequency": "Very Common (55% of Freshers)",
+    "symptom": "Deploy fails immediately with error: 'No configuration found for service [service-name] in zerops.yml'.",
+    "explanation": "In `zerops.yml`, the `setup:` identifier must EXACTLY match the hostname you gave to the service when creating it in the Zerops dashboard.",
+    "wrongCode": "# In Zerops dashboard, you created a service named 'myapi'\n# But your zerops.yml has:\nzerops:\n  - setup: api # MISMATCH! Zerops cannot map 'myapi' to 'api'",
+    "fixedCode": "# Matches the dashboard service name 'myapi' exactly:\nzerops:\n  - setup: myapi\n    build:\n      base: nodejs@20\n      ...",
+    "zeropsYmlCheck": "zerops:\n  - setup: <YOUR_EXACT_SERVICE_HOSTNAME>",
+    "proTip": "If your project has multiple services (e.g. `frontend` and `backend`), list both under the `zerops:` array in a single `zerops.yml` file!"
+  },
+  {
+    "id": "pitfall-missing-healthcheck",
+    "title": "Healthcheck Failing or Timing Out on Heavy Startup",
+    "severity": "HIGH",
+    "category": "Healthchecks & Readiness",
+    "frequency": "Moderate (40% of Freshers)",
+    "symptom": "Container boots up and works locally, but Zerops marks the deployment as FAILED and rolls back with 'Health check timed out'.",
+    "explanation": "Zerops sends HTTP requests to your configured health check URL (e.g., `/` or `/healthz`) to verify readiness. If your app takes 10 seconds to run database migrations before listening, or if the health route returns a 401 Unauthorized or 404, Zerops assumes the container crashed.",
+    "wrongCode": "// Missing dedicated health endpoint or requiring authentication for /healthz\napp.use(authMiddleware); // Blocks all routes, including /healthz with 401 Unauthorized!\napp.get('/healthz', (req, res) => res.send('OK'));",
+    "fixedCode": "// Exclude healthcheck from authentication middleware\napp.get('/healthz', (req, res) => {\n  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });\n});\n\n// Apply auth middleware AFTER health check\napp.use(authMiddleware);",
+    "zeropsYmlCheck": "run:\n  ports:\n    - port: 3000\n      httpSupport: true\n  healthCheck:\n    httpGet:\n      port: 3000\n      path: /healthz",
+    "proTip": "Keep `/healthz` lightweight and unauthenticated so Zerops load balancers can probe container health constantly."
+  },
+  {
+    "id": "pitfall-dev-dependencies-omission",
+    "title": "Using devDependencies in Production Build or Missing Production Build Command",
+    "severity": "HIGH",
+    "category": "Dependencies",
+    "frequency": "Common (45% of Freshers)",
+    "symptom": "Deploy fails during build with `tsc: command not found` or `vite: command not found` or app crashes in runtime with `Cannot find module 'express'`.",
+    "explanation": "If TypeScript or build tools are needed to compile your code, they must be in `dependencies` or installed during the build stage before `npm prune --production` is executed.",
+    "wrongCode": "# Deploying without building TypeScript or running dist\nrun:\n  start: ts-node src/index.ts # ts-node is slow and requires dev dependencies in runtime!",
+    "fixedCode": "# Compile TypeScript in build phase, run compiled JS in run phase\nbuild:\n  base: nodejs@20\n  buildCommands:\n    - npm ci\n    - npm run build # Compiles src/ to dist/\n  deployFiles:\n    - dist\n    - package.json\n    - node_modules\nrun:\n  base: nodejs@20\n  start: node dist/index.js",
+    "zeropsYmlCheck": "start: node dist/index.js",
+    "proTip": "Always test running `npm run build && node dist/index.js` locally before pushing to production."
+  }
+]
